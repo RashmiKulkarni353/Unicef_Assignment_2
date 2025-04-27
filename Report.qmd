@@ -1,0 +1,608 @@
+---
+title: Exploring the Impact of Economic Development on Childhood Obesity and Life Expectancy
+author: Rashmi Kulkarni
+format:
+  html:
+    code-fold: true
+    toc: true
+    toc-location: right
+execute:
+  echo: true
+  freeze: true
+jupyter:
+  kernelspec:
+    display_name: Python [conda env:base] *
+    language: python
+    name: conda-base-py
+---
+
+
+```{python}
+import pandas as pd
+import plotly.graph_objects as go
+
+# Load the data
+df_weight = pd.read_csv("unicef_indicator_2.csv")
+df_meta = pd.read_csv("unicef_metadata.csv")
+```
+
+## Introduction
+
+This analysis explores the relationship between **childhood obesity** (measured by **Weight-for-Height**) and **life expectancy** across different countries from **2000 to 2022**. The aim is to uncover global trends in both childhood obesity and life expectancy, examining how these two indicators have evolved over time and understanding the factors that may influence them.
+
+### Objectives:
+- **Visualize global trends** in childhood obesity and life expectancy across countries.
+- **Identify patterns** of increasing childhood obesity, particularly in developed and emerging economies.
+- **Analyze the relationship** between **Weight-for-Height** (overweight children) and **Life Expectancy** to determine if higher life expectancy correlates with lower obesity rates.
+
+### Data Sources:
+1. **Weight-for-Height Data**: The data represents the number of overweight children (those above the +2 standard deviation threshold for weight-for-height) across various countries and years.
+2. **Life Expectancy Data**: The data covers the average life expectancy at birth for each country over time.
+
+### Expected Outcomes:
+- The analysis is expected to reveal that **wealthier nations** with higher **life expectancy** tend to have higher **rates of childhood obesity**, possibly due to factors such as **urbanization**, **diet changes**, and **lifestyle factors**.
+- The relationship between **Life Expectancy** and **childhood obesity** will be explored, with a focus on **developed nations** showing a paradox where life expectancy increases but so do obesity rates.
+
+By analyzing these trends, the goal is to highlight the global issue of childhood obesity and its impact on future health outcomes, emphasizing the need for interventions that address both **public health** and **nutrition** in different countries.
+
+## Weight vs Life Expectancy
+
+
+This interactive plot compares **Weight-for-Height** (children's weight) and **Life Expectancy** (in years) for different countries over time (2000–2022). The plot shows the trend of **Weight-for-Height** on the left y-axis (in thousands) and **Life Expectancy** on the right y-axis. Users can select any country from the dropdown to explore how these two indicators evolve over time.
+
+### Insights:
+
+#### Global Trends:
+- There is a **positive correlation** between Weight-for-Height and Life Expectancy for many countries. As countries experience economic development and improvements in healthcare, often see increases in both life expectancy and the number of overweight children.
+- However, the rate of change in Weight-for-Height does not always match the changes in Life Expectancy, especially in countries where childhood obesity is rising sharply, like in the United States.
+
+#### Countries with Notable Trends:
+
+1. China:
+   - Both  Weight-for-Height  and  Life Expectancy  have  increased significantly  over time. By 2020, China shows a marked rise in overweight children, which parallels the steady increase in life expectancy, suggesting improvements in both nutrition and healthcare.
+   
+  
+
+2. India:
+   - Weight-for-Height steadily increased over the years, but at a slower rate than China. Life Expectancy improved as well, although the gap between Weight-for-Height and Life Expectancy grew, indicating slow but continuous progress in health and nutrition.
+   
+
+
+3. Nigeria:
+   - Weight-for-Height has grown sharply, especially in the last decade, reflecting a rising issue with childhood obesity. However, the Life Expectancy in Nigeria has been increasing at a slower pace, which might be reflective of challenges in healthcare systems.
+      
+
+
+### General Observations:
+- Developed countries like the United States and Australia show rising obesity rates, indicating an increase in overweight children, while life expectancy continues to rise, although at a slower pace in some countries.
+- Emerging economies such as China and India are witnessing rapid growth in both Weight-for-Height and Life Expectancy, reflecting improvements in economic conditions and public health.
+- Lower-income countries like Nigeria show steady growth in Weight-for-Height, but their Life Expectancy remains lower compared to more developed nations, suggesting disparities in health and nutrition.
+
+---
+
+```{python}
+#| colab: {base_uri: https://localhost:8080/, height: 517}
+
+# Filter weight indicator
+df_weight = df_weight[df_weight["indicator"].str.contains("Weight-for-height", na=False)]
+df_weight = df_weight[["country", "time_period", "obs_value"]].rename(columns={
+    "country": "Country",
+    "time_period": "Year",
+    "obs_value": "Weight"
+})
+
+# Filter life expectancy
+df_meta = df_meta[["country", "year", "Life expectancy at birth, total (years)"]].rename(columns={
+    "country": "Country",
+    "year": "Year",
+    "Life expectancy at birth, total (years)": "LifeExpectancy"
+})
+
+# Merge
+df = pd.merge(df_weight, df_meta, on=["Country", "Year"])
+df = df.sort_values(["Country", "Year"])
+
+# Get all countries
+countries = df["Country"].unique()
+
+# Create traces (2 per country)
+traces = []
+buttons = []
+
+for i, country in enumerate(countries):
+    subset = df[df["Country"] == country]
+
+    visible = [False] * (2 * len(countries))
+    visible[2*i] = True
+    visible[2*i+1] = True
+
+    # Weight
+    traces.append(go.Scatter(
+        x=subset["Year"],
+        y=subset["Weight"],
+        name="Weight-for-height",
+        mode="lines+markers",
+        line=dict(color='deeppink'),
+        visible=(i == 0),
+        yaxis="y1"
+    ))
+
+    # Life Expectancy
+    traces.append(go.Scatter(
+        x=subset["Year"],
+        y=subset["LifeExpectancy"],
+        name="Life Expectancy",
+        mode="lines+markers",
+        line=dict(color='firebrick', dash='dash'),
+        visible=(i == 0),
+        yaxis="y2"
+    ))
+
+    # Dropdown button
+    buttons.append(dict(
+        label=country,
+        method="update",
+        args=[
+            {"visible": visible},
+            {"title": f"Weight vs Life Expectancy – {country}"}
+        ]
+    ))
+
+# Layout
+layout = go.Layout(
+    title=f"Weight vs Life Expectancy – {countries[0]}",
+    xaxis=dict(title="Year of Time Period"),
+    yaxis=dict(
+        title="Weight-for-height (Thousands)",
+        titlefont=dict(color="deeppink"),
+        tickfont=dict(color="deeppink")
+    ),
+    yaxis2=dict(
+        title="Life Expectancy (Years)",
+        titlefont=dict(color="firebrick"),
+        tickfont=dict(color="firebrick"),
+        overlaying="y",
+        side="right"
+    ),
+    updatemenus=[dict(
+        buttons=buttons,
+        direction="down",
+        showactive=True,
+        x=1.15,
+        xanchor="left",
+        y=1,
+        yanchor="top"
+    )],
+    legend=dict(x=0.01, y=0.99),
+    height=500
+)
+
+# Create figure
+fig = go.Figure(data=traces, layout=layout)
+fig.show()
+```
+
+## Global Weight-for-Height (>+2 SD) in Children Under 5
+
+
+This interactive map visualizes the **Global Weight-for-Height** data for children under 5, specifically for those who fall into the **>+2 SD** (standard deviation) category, which indicates overweight children. The map spans from **2000 to 2022** and provides insights into the global distribution of overweight children over the years.
+
+- **X-axis**: The year is represented as a timeline, and users can animate through the years.
+- **Y-axis**: The weight-for-height (in thousands of children) is color-coded to represent the number of overweight children.
+- **Color Scale**: The countries are colored according to the number of overweight children, with **dark red** indicating higher numbers and **yellow** indicating lower numbers.
+
+
+### Key Insights:
+1. **China**: The number of overweight children in China has significantly increased, with the country showing the highest concentration of overweight children in recent years.
+2. **India**: India follows a similar pattern, with a noticeable rise in overweight children, reflecting rapid economic and health changes.
+3. **Developing Countries**: While the United States and China dominate the numbers, several developing countries, particularly in Africa and South Asia, show steady increases in overweight children over time.
+4. **Global Trends**: There is a clear upward trend in many parts of the world, indicating increasing childhood obesity as a global health concern.
+
+### Key Takeaways:
+- **Increasing Rates of Childhood Obesity**: The map shows a growing global trend in childhood obesity, particularly in countries with developing economies like **China** and **India**.
+- **Geographical Disparities**: Developed countries such as the **United States** show the highest concentration of overweight children, but this issue is spreading rapidly in emerging economies, especially in Asia.
+
+---
+
+```{python}
+#| colab: {base_uri: https://localhost:8080/, height: 542}
+import plotly.express as px
+
+
+
+map_df = df_weight.copy()
+
+# Remove nulls
+map_df = map_df.dropna(subset=["Weight", "Country", "Year"])
+
+# Use the animation_frame feature to allow year selection
+fig_map = px.choropleth(
+    map_df,
+    locations="Country",
+    locationmode="country names",
+    color="Weight",
+    hover_name="Country",
+    animation_frame="Year",
+    color_continuous_scale="YlOrRd",
+    title="Global Weight-for-height (>+2 SD) in Children Under 5",
+    labels={"Weight": "Children (Thousands)"}
+)
+
+# Improve layout
+fig_map.update_layout(
+    margin={"r":0,"t":50,"l":0,"b":0},
+    geo=dict(showcoastlines=True, showland=True, showcountries=True),
+)
+
+# Show the map
+fig_map.show()
+```
+
+## Life Expectancy vs Overweight Children
+
+
+This interactive scatter plot compares **Life Expectancy** at birth (in years) and the number of **Overweight Children** (in thousands) across different countries. The data spans from **2000 to 2022**, and for each year, both the data points and **regression lines** are displayed, providing insights into the evolving relationship between life expectancy and childhood obesity.
+
+### Insights:
+- **General Trend**: There is **no clear linear correlation** between **life expectancy** and the **number of overweight children**. This suggests that while **life expectancy** has increased in many countries, it does not necessarily correlate with a reduction in childhood obesity.
+- **High Life Expectancy vs Obesity**: Countries with higher **life expectancy** tend to show **high obesity rates** (e.g., **United States**). This indicates that wealthier, developed nations face rising issues of **childhood obesity**, despite improvements in healthcare and nutrition.
+- **Global Variation**: While some countries with **low life expectancy** (e.g., certain **African countries**) show lower obesity rates, others with similar life expectancy levels have higher obesity rates, indicating the **complexity** of the factors contributing to childhood obesity.
+  
+### Key Takeaways:
+- **No strong correlation**: The weak correlation between **life expectancy** and **overweight children** suggests that **economic development** alone does not resolve the problem of childhood obesity.
+- **Wealthier nations' dilemma**: While wealthier countries often see higher life expectancy, they also face the growing challenge of **childhood obesity**, pointing to issues like **diet**, **lifestyle**, and **urbanization** as potential factors.
+- The **regression lines** across the years highlight that **childhood obesity** has become an increasing concern globally, particularly in **developed nations**, despite improvements in overall health outcomes.
+
+
+```{python}
+#| colab: {base_uri: https://localhost:8080/, height: 517}
+# --- Plot 3: Scatterplot with Year Dropdown and Regression Line ---
+
+import statsmodels.api as sm
+
+# Merge data for scatterplot
+df_scatter = pd.merge(df_weight, df_meta, on=["Country", "Year"])
+df_scatter = df_scatter.dropna(subset=["Weight", "LifeExpectancy"])
+
+# Get available years
+years = sorted(df_scatter["Year"].unique())
+
+# Create traces and dropdown buttons
+scatter_traces = []
+scatter_buttons = []
+
+for i, year in enumerate(years):
+    df_year = df_scatter[df_scatter["Year"] == year].copy()
+    df_year_sorted = df_year.sort_values("LifeExpectancy")
+
+    # Regression model
+    X = sm.add_constant(df_year_sorted["LifeExpectancy"])
+    model = sm.OLS(df_year_sorted["Weight"], X).fit()
+    reg_line = model.predict(X)
+
+    # Scatter trace
+    scatter = go.Scatter(
+        x=df_year_sorted["LifeExpectancy"],
+        y=df_year_sorted["Weight"],
+        mode="markers",
+        marker=dict(size=10, color='blue', opacity=0.6),
+        name=f"{year} Data",
+        text=df_year_sorted["Country"],
+        hovertemplate="<b>%{text}</b><br>Life Expectancy: %{x}<br>Overweight (000s): %{y}<extra></extra>",
+        visible=(i == 0)
+    )
+    scatter_traces.append(scatter)
+
+    # Regression line trace
+    reg_trace = go.Scatter(
+        x=df_year_sorted["LifeExpectancy"],
+        y=reg_line,
+        mode="lines",
+        line=dict(color="firebrick", dash="dash"),
+        name=f"{year} Regression",
+        visible=(i == 0)
+    )
+    scatter_traces.append(reg_trace)
+
+    # Dropdown button setup
+    vis = [False] * (2 * len(years))
+    vis[2 * i] = True
+    vis[2 * i + 1] = True
+
+    scatter_buttons.append(dict(
+        label=str(year),
+        method="update",
+        args=[
+            {"visible": vis},
+            {"title": f"Life Expectancy vs Overweight Children – {year}"}
+        ]
+    ))
+
+# Layout for scatter plot
+scatter_layout = go.Layout(
+    title=dict(
+        text=f"Life Expectancy vs Overweight Children – {years[0]}",
+        y=0.92,
+        x=0.5,
+        xanchor="center",
+        yanchor="top"
+    ),
+    xaxis=dict(title="Life Expectancy at Birth (Years)"),
+    yaxis=dict(title="Overweight Children (Thousands)"),
+    updatemenus=[dict(
+        active=0,
+        buttons=scatter_buttons,
+        direction="down",
+        showactive=True,
+        x=0.01,
+        xanchor="left",
+        y=1.05,
+        yanchor="top"
+    )],
+    legend=dict(
+        x=0.01,
+        y=0.98,
+        bgcolor='rgba(255,255,255,0.7)',
+        bordercolor='gray',
+        borderwidth=1
+    ),
+    margin=dict(t=100),
+    height=500
+)
+
+# Final scatter plot
+fig_scatter = go.Figure(data=scatter_traces, layout=scatter_layout)
+fig_scatter.show()
+```
+
+## Top 10 Countries by Overweight Children
+
+
+This interactive bar chart visualizes the **Top 10 Countries** with the highest number of **overweight children** (measured in thousands) for each year, from 2000 to the most recent available year. The data is grouped by year and country, with the **weight-for-height** values (children's weight) summed up for each country.
+
+### Plot
+- **X-axis**: Countries, showing the top 10 countries with the highest number of overweight children for each selected year.
+- **Y-axis**: Overweight Children (in thousands).
+- **Interactive Dropdown**: Allows the user to select different years to compare the top 10 countries in terms of overweight children.
+
+### Insights:
+- **China** stands out as the country with the highest number of overweight children, significantly leading other countries, particularly in earlier years (2000).
+- **India** and the **United States** follow, with both showing a notable increase in overweight children over time.
+- **Egypt**, **Mexico**, and **Indonesia** are also part of the top countries, but they show more gradual growth compared to the leaders like **China** and **United States**.
+- Over time, countries with higher GDP seem to experience more noticeable increases in overweight children, while lower-GDP countries show slower rates of increase.
+
+### Key Takeaways:
+- The **Top 10 countries** by overweight children consistently include large economies and fast-developing nations.
+- The **United States** and **China** show the largest numbers, suggesting that economic growth and improved living standards lead to increased rates of childhood obesity.
+- The plot allows us to explore how **overweight children** data has changed annually, offering insights into health and nutrition trends globally.
+
+```{python}
+#| colab: {base_uri: https://localhost:8080/, height: 517}
+import plotly.express as px
+
+# --- Plot 4: Interactive Bar Chart with Different Colors for Top 10 Countries by Year ---
+
+# Prepare the data
+df_top_countries = df.groupby(['Year', 'Country'], as_index=False)['Weight'].sum()
+
+# Define a color palette
+color_palette = px.colors.qualitative.Set2  # You can choose other palettes like "Set1", "Set3", etc.
+
+# Create traces for each year
+bar_traces = []
+buttons = []
+
+years = sorted(df_top_countries['Year'].unique())
+
+for i, year in enumerate(years):
+    df_year = df_top_countries[df_top_countries["Year"] == year]
+
+    # Sort the countries by Weight (overweight children)
+    df_year_sorted = df_year.sort_values(by="Weight", ascending=False).head(10)
+
+    # Create bar chart for each year with different colors for top 10 countries
+    bar_trace = go.Bar(
+        x=df_year_sorted["Country"],
+        y=df_year_sorted["Weight"],
+        name=str(year),
+        marker=dict(color=color_palette[:len(df_year_sorted)]),  # Apply different colors
+        visible=(i == 0)
+    )
+    bar_traces.append(bar_trace)
+
+    # Button for dropdown
+    visibility = [False] * len(years)
+    visibility[i] = True
+
+    buttons.append(dict(
+        label=str(year),
+        method="update",
+        args=[{"visible": visibility},
+              {"title": f"Top 10 Countries by Overweight Children in {year}",
+               "xaxis": {"title": "Country"},
+               "yaxis": {"title": "Overweight Children (Thousands)"}}]
+    ))
+
+# Layout
+layout = go.Layout(
+    title=f"Top 10 Countries by Overweight Children in {years[0]}",
+    updatemenus=[dict(
+        buttons=buttons,
+        direction="down",
+        showactive=True,
+        x=0.01,
+        xanchor="left",
+        y=1.15,
+        yanchor="top"
+    )],
+    xaxis=dict(title="Country"),
+    yaxis=dict(title="Overweight Children (Thousands)"),
+    height=500,
+    margin=dict(t=100, b=40, l=60, r=20)
+)
+
+# Final bar chart with traces
+fig_bar = go.Figure(data=bar_traces, layout=layout)
+fig_bar.show()
+```
+
+## Yearly Weight-for-Height Comparison of Top 5 Countries
+
+
+This plot shows the **Weight-for-Height** (children's weight) across the **Top 5 Countries** over time (2000–2020). The top 5 countries are **China, Egypt, India, Indonesia, and the United States**, and the data is measured in **thousands** of children.
+
+### Insights:
+- **China** stands out with the **highest growth** in weight-for-height, reaching its peak by 2020, likely driven by rapid economic and healthcare improvements.
+- **United States** shows steady growth, but not as pronounced as China’s. Despite its high GDP, its increase in weight-for-height is slower.
+- **India** and **Indonesia** display gradual growth, with **India** slightly lagging behind, reflecting slower development in nutrition and health sectors.
+- **Egypt** has the **slowest increase**, starting from a low base and rising steadily but at a minimal pace.
+
+### Key Takeaways:
+- **Economic development** and **healthcare improvements** are key drivers of weight-for-height growth, with **China** leading the way.
+- The **United States** and **China** dominate, but **India**, **Indonesia**, and **Egypt** show slower progress, likely due to less economic and healthcare development.
+
+```{python}
+# Step 1: Calculate total weight-for-height for each country
+total_weight_by_country = df.groupby("Country")["Weight"].sum().reset_index()
+
+# Step 2: Sort countries by total weight and select top 5
+top_countries = total_weight_by_country.sort_values(by="Weight", ascending=False).head(5)["Country"]
+
+# Step 3: Filter the data for the top 5 countries
+df_comparison_top_5 = df[df["Country"].isin(top_countries)]
+
+# Step 4: Create the line chart
+fig_comparison_top_5 = px.line(
+    df_comparison_top_5,
+    x="Year",
+    y="Weight",
+    color="Country",
+    title="Yearly Weight-for-Height Comparison of Top 5 Countries"
+)
+
+fig_comparison_top_5.update_layout(
+    xaxis_title="Year",
+    yaxis_title="Weight-for-Height (Thousands)",
+    height=500
+)
+
+# Show the plot
+fig_comparison_top_5.show()
+```
+
+```{python}
+df_meta1 = pd.read_csv("unicef_metadata.csv")
+```
+
+## GDP per Capita vs Life Expectancy – Top 5 Countries
+
+This scatter plot visualizes the relationship between **GDP per capita** (constant 2015 US$) and **Life Expectancy** (years) for the top 5 countries with the highest GDP per capita. The countries displayed are **Bermuda**, **Liechtenstein**, **Luxembourg**, **United Arab Emirates**, and **Switzerland**. The plot shows a generally positive correlation, where countries with higher GDP per capita tend to have higher life expectancy, although there are some deviations, particularly with **Liechtenstein** and **United Arab Emirates**.
+
+### Key Insights:
+- **Bermuda** and **Luxembourg** show very high life expectancy and GDP per capita.
+- **United Arab Emirates** stands out with a relatively high GDP per capita but a slightly lower life expectancy compared to the other top countries.
+- The positive relationship suggests that **economic wealth** plays a role in improving the overall **health outcomes** in these countries.
+
+```{python}
+# Sort the dataset by GDP per capita in descending order
+df_sorted_gdp = df_meta1.sort_values(by="GDP per capita (constant 2015 US$)", ascending=False)
+
+# Select the top 5 countries based on GDP
+top_5_gdp_countries = df_sorted_gdp["country"].unique()[:5]
+
+# Filter the dataset to include only the top 5 countries
+df_top_5_gdp = df_meta1[df_meta1["country"].isin(top_5_gdp_countries)]
+
+# Filter out rows with missing GDP or Life Expectancy data
+df_top_5_gdp = df_top_5_gdp.dropna(subset=["GDP per capita (constant 2015 US$)", "Life expectancy at birth, total (years)"])
+
+# Create a scatter plot for GDP vs Life Expectancy for the top 5 countries
+fig_gdp_life_top5 = px.scatter(
+    df_top_5_gdp,
+    x="GDP per capita (constant 2015 US$)",
+    y="Life expectancy at birth, total (years)",
+    color="country",
+    hover_data=["year", "country"],
+    title="Top 5 Countries: GDP per Capita vs Life Expectancy"
+)
+
+fig_gdp_life_top5.update_layout(
+    xaxis_title="GDP per Capita (constant 2015 US$)",
+    yaxis_title="Life Expectancy (Years)",
+    height=500
+)
+
+fig_gdp_life_top5.show()
+```
+
+## Data Transformations
+
+In this analysis, several **data transformations** were carried out to prepare the data for visualization and analysis. These transformations helped in cleaning, merging, and restructuring the data to extract meaningful insights. Below is a summary of the key steps involved in transforming the data.
+
+### 1. **Data Cleaning:**
+   - **Removing Missing Values:** 
+     - The first step involved checking for missing values in the datasets. Rows with **missing values** for crucial columns, such as **Weight**, **Life Expectancy**, or **Country**, were removed. This ensured that the analysis was based on complete and accurate data.
+     - For example, any countries or years that lacked data for **Weight-for-Height** or **Life Expectancy** were excluded from the dataset.
+   
+   - **Filtering Relevant Indicators:**
+     - From the dataset of health indicators,  filtered for the **Weight-for-Height** indicator to focus on overweight children, specifically those above **+2 standard deviation (SD)**.
+     - This transformation was necessary to isolate the data related to **childhood obesity** and exclude other irrelevant health indicators.
+   
+   - **Renaming Columns:**
+     - To improve readability and make the dataset more user-friendly, column names were renamed. For example, **"time_period"** was renamed to **"Year"**. This was done to ensure consistency across datasets and make them more intuitive.
+
+### 2. **Merging Datasets:**
+   - The **Weight-for-Height data** and **Life Expectancy data** were originally stored in two separate datasets. To analyze the relationship between the two,  merged these datasets on the **Country** and **Year** columns. This enabled us to compare **overweight children** and **life expectancy** for each country across different years.
+   - After merging the data,  ensured that the resulting dataset was **sorted** by **Country** and **Year**, making it easier to track trends over time for individual countries.
+
+### 3. **Aggregating Data for Top Countries:**
+   - To focus on the **Top 5 Countries** with the highest total number of **overweight children**, the dataset was **grouped by country**, and the **total weight-for-height** for each country was calculated.
+   - Countries were then sorted by this **total weight** in descending order, and the top 5 countries were selected for comparison. This transformation helped highlight countries with the most significant health concerns regarding childhood obesity.
+
+### 4. **Creating Interactive Dropdown:**
+   - For the **interactive plots** comparing **Weight-for-Height** and **Life Expectancy** for each country, a **dropdown** feature was added. This allowed the user to select a country from the list, dynamically updating the plot to show trends for that specific country.
+   - Each country had its own subset of data, and traces were created for both **Weight-for-Height** and **Life Expectancy** to be plotted on two separate y-axes.
+
+### 5. **Regression Analysis:**
+   - For each year in the **scatter plots** comparing **Life Expectancy** with **Overweight Children**, a **linear regression model** was applied to assess the relationship between these two variables.
+   - The **regression line** was computed for each year to identify any trends or patterns in the relationship between **life expectancy** and **childhood obesity**. This was done using **OLS (Ordinary Least Squares)** regression, which helped in understanding how the number of overweight children changes as life expectancy varies.
+
+### 6. **Data Transformation for Mapping:**
+   - For the **choropleth map** visualizing the number of **overweight children** across countries, the dataset was prepared by ensuring that the country names matched the country names used in the map's geographical data. 
+   - The **data was aggregated by year** and **country**, and any missing data was removed to ensure the map displayed accurate and complete information.
+
+### 7. **Normalization and Scaling:**
+   - The data for **Weight-for-Height** (number of overweight children) was kept in **thousands** to ensure clarity in the visualizations. Although this step was not technically a transformation, it made the data easier to understand in the context of the plots.
+   - Similarly, **Life Expectancy** values were left unaltered, ensuring that the values for each year were consistent.
+
+
+
+## Conclusion and Recommendations
+
+### Conclusion:
+This analysis explored the evolving relationship between **childhood obesity** (measured as **Weight-for-Height**) and **life expectancy** across multiple countries over the period from **2000 to 2022**. By analyzing global trends and comparing key countries, several key insights emerged:
+
+1. **Rising Childhood Obesity**: There is a global increase in the number of overweight children, particularly in developed countries. Nations like the **United States**, **China**, and **Australia** saw a steady rise in Weight-for-Height, highlighting the growing concern of childhood obesity.
+
+2. **Weak Correlation with Life Expectancy**: While life expectancy has generally increased across the globe, there is no clear linear correlation between life expectancy and the number of overweight children. In other words, higher life expectancy does not necessarily equate to fewer overweight children. This indicates that obesity and life expectancy are influenced by multiple factors, including diet, lifestyle, economic conditions, and healthcare systems.
+
+3. **Wealthier Nations and Obesity**: The data suggests that wealthier nations tend to have both higher life expectancy and more significant childhood obesity. This may be due to changes in dietary habits, urbanization, and increased sedentary lifestyles, as well as increased availability of processed foods.
+
+4. **Diverse Global Trends**: The relationship between life expectancy and childhood obesity shows significant variations across countries. While some countries with lower life expectancy show fewer overweight children, others exhibit high obesity rates despite similar life expectancy levels. This underscores the complexity of childhood obesity as a global health issue.
+
+### Recommendations:
+1. **Focus on Prevention**: To address rising childhood obesity, particularly in developed nations, public health interventions should focus on **prevention**. These could include promoting healthier diets, physical activity, and reducing sedentary behavior in children.
+
+2. **Targeting Urban and Wealthier Regions**: Given the link between economic development and rising childhood obesity, initiatives targeting urban areas and wealthier regions should be prioritized. Efforts to improve access to nutritious food and physical activity opportunities are crucial.
+
+3. **Improved Healthcare and Nutrition**: In emerging economies, improving **healthcare systems** and providing better access to **nutrition** could help mitigate the rising rates of obesity. Early interventions, including education on healthy lifestyles and better access to healthcare, are essential to curbing the obesity epidemic.
+
+4. **Cross-Country Collaboration**: International collaborations between countries facing similar challenges with childhood obesity could help share effective strategies. Learning from countries with successful obesity prevention programs can help develop tailored interventions for countries with higher obesity rates.
+
+5. **Long-term Monitoring**: Continuous **monitoring** of childhood obesity trends should be done to assess the effectiveness of interventions and adapt strategies as necessary. Regular data collection on **Weight-for-Height** and **life expectancy** will be key in understanding the evolving global health challenges.
+
+---
+
+### Conclusion:
+This work underscores the growing global concern of childhood obesity, which is increasing despite rising life expectancy in many countries. Addressing this issue requires comprehensive strategies that go beyond healthcare and nutrition, including addressing lifestyle factors, urbanization, and the impact of economic development. By focusing on prevention and early intervention, countries can work towards reducing childhood obesity rates and improving overall child health.
+
