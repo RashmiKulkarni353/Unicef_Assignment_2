@@ -48,7 +48,7 @@ To run this project, ensure you have:
 
 ## Usage
 
-1. Access the Jupyter Notebooks in the `notebooks/` folder to explore the analysis.
+1. Access the Jupyter Notebooks in the `dcu_rashmi_new.ipynb/` file to explore the analysis.
 2. Open the HTML file `dcu_rashmi_new.html` to view report with interactive visualizations and make sure that `dcu_rashmi_new_files/libs` present for correct rendering.
 
 ## Contribution
