@@ -1,6 +1,3 @@
-Here is the `README.md` file for your repository:
-
-```markdown
 # UNICEF Assignment 2
 
 This repository contains code and analysis for UNICEF Assignment 2. The main objective is to analyze and present data insights related to UNICEF's initiatives using Jupyter Notebooks, HTML, and JavaScript.
@@ -75,6 +72,3 @@ This project is licensed under the [MIT License](LICENSE).
 ---
 
 Thank you for exploring this repository! If you find it helpful, please give it a ⭐️.
-```
-
-Feel free to customize this further based on your specific project contents or requirements!
