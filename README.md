@@ -15,16 +15,6 @@ This repository contains code and analysis for UNICEF Assignment 2. The main obj
 - Interactive HTML-based reporting.
 - JavaScript for enhancing interactivity and dynamic content.
 
-## Folder Structure
-
-```
-Unicef_Assignment_2/
-├── notebooks/       # Jupyter Notebooks for data analysis
-├── html/            # HTML files for visualizations and presentations
-├── scripts/         # JavaScript files for interactivity
-└── data/            # Raw datasets used for analysis
-```
-
 ## Getting Started
 
 ### Prerequisites
@@ -59,7 +49,7 @@ To run this project, ensure you have:
 ## Usage
 
 1. Access the Jupyter Notebooks in the `notebooks/` folder to explore the analysis.
-2. Open the HTML files in the `html/` folder to view interactive visualizations.
+2. Open the HTML file `dcu_rashmi_new.html` to view report with interactive visualizations and make sure that `dcu_rashmi_new_files/libs` present for correct rendering.
 
 ## Contribution
 
